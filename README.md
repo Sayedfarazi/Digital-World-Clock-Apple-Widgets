@@ -6,15 +6,14 @@ Compare local times across up to 12 cities on your Mac desktop or in Notificatio
 
 Apple’s Clock app and its analog World Clock and City widgets inspired this project. My widgets build on that design with digital faces that show each city’s local time in either 12-hour or 24-hour format.
 
-## Install the release
+## Install
 
 Requires an Apple silicon Mac running macOS 26 or later. Tested on macOS 27.2.
 
 1. [Download Digital-World-Clock-Widgets.zip](../../releases/latest/download/Digital-World-Clock-Widgets.zip).
-2. Unzip the download, move **Digital World-Clock Widgets.app** to **Applications**, and open it once so macOS can discover the widgets.
-3. Right-click the desktop, choose **Edit Widgets**, and search for **Digital World-Clock Widgets**. Choose **City Digital** for one large clock or **World Clock Digital** for several cities.
-
-The app is signed locally. If macOS asks you to verify the developer, follow [Apple’s instructions for opening a downloaded app](https://support.apple.com/guide/mac-help/mh40616/mac).
+2. Unzip the download, move **Digital World-Clock Widgets.app** to **Applications**, and double-click it.
+3. **If macOS says it can’t verify the developer** and you trust the copy you downloaded from this release, click **Done**. Open ** → System Settings → Privacy & Security** and scroll to **Security**. Find the message naming **Digital World-Clock Widgets**, click **Open Anyway**, and confirm **Open**. Enter your password or use Touch ID if prompted. [Apple’s guide to opening downloaded apps](https://support.apple.com/en-us/102445)
+4. After the app opens once, right-click the desktop, choose **Edit Widgets**, and search for **Digital World-Clock Widgets**. Choose **City Digital** for one large clock or **World Clock Digital** for several cities.
 
 Open the app to set your default cities and their order. Right-click an individual widget and choose **Edit Widget** to change its cities, time format, or seconds display.
 
