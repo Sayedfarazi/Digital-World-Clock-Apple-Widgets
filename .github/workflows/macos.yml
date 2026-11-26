@@ -4,6 +4,13 @@ on:
   push:
     branches: [main]
     tags: ['v*']
+    paths:
+      - 'Shared/**'
+      - 'macOS/**'
+      - '!**/*.md'
+      - '!macOS/docs/**'
+      - 'LICENSE'
+      - '.github/workflows/macos.yml'
 
 permissions:
   contents: read
