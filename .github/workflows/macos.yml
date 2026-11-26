@@ -13,19 +13,35 @@ jobs:
     name: Build and verify ZIP
     runs-on: macos-26
     timeout-minutes: 25
+    outputs:
+      release_tag: ${{ steps.version.outputs.release_tag }}
     steps:
       - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
         with:
           persist-credentials: false
+          fetch-depth: 0
 
-      - name: Check release version
-        if: github.ref_type == 'tag'
+      - name: Determine release version
+        id: version
+        env:
+          BEFORE: ${{ github.event.before }}
         run: |
           source macOS/config/project.env
-          if [[ "$GITHUB_REF_NAME" != "v$MARKETING_VERSION" ]]; then
-            echo "::error::Expected tag v$MARKETING_VERSION for this build"
+          tag="v$MARKETING_VERSION"
+          if [[ ! "$MARKETING_VERSION" =~ ^[0-9]+[.][0-9]+[.][0-9]+$ ]]; then
+            echo "::error::Expected a major.minor.patch version"
             exit 1
           fi
+          if [[ "$GITHUB_REF_TYPE" == tag ]]; then
+            [[ "$GITHUB_REF_NAME" == "$tag" ]] || { echo "::error::Expected $tag"; exit 1; }
+          elif [[ "$BEFORE" != 0000000000000000000000000000000000000000 ]]; then
+            previous=$(git show "$BEFORE:macOS/config/project.env" | sed -n 's/^MARKETING_VERSION="\([^"]*\)".*/\1/p')
+            if [[ "$previous" == "$MARKETING_VERSION" ]]; then
+              echo "Version unchanged. Build verification only."
+              exit 0
+            fi
+          fi
+          echo "release_tag=$tag" >> "$GITHUB_OUTPUT"
 
       - name: Generate city catalog
         run: python3 Shared/scripts/gen_cities.py
@@ -34,7 +50,7 @@ jobs:
         run: macOS/scripts/package.sh
 
       - name: Pass verified ZIP to release job
-        if: github.ref_type == 'tag'
+        if: steps.version.outputs.release_tag != ''
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
         with:
           name: macos-release
@@ -44,7 +60,8 @@ jobs:
 
   release:
     name: Publish GitHub Release
-    if: github.ref_type == 'tag'
+    if: needs.build.outputs.release_tag != ''
+    concurrency: release-${{ needs.build.outputs.release_tag }}
     needs: build
     runs-on: ubuntu-latest
     permissions:
@@ -57,7 +74,13 @@ jobs:
       - name: Publish verified ZIP
         env:
           GH_TOKEN: ${{ github.token }}
+          TAG: ${{ needs.build.outputs.release_tag }}
         run: |
-          gh release create "$GITHUB_REF_NAME" Digital-World-Clock-Widgets.zip \
-            --repo "$GITHUB_REPOSITORY" --verify-tag --generate-notes \
-            --title "Digital World-Clock Widgets $GITHUB_REF_NAME"
+          if gh release view "$TAG" --repo "$GITHUB_REPOSITORY" --json isDraft,assets \
+              --jq '(.isDraft == false) and any(.assets[]; .name == "Digital-World-Clock-Widgets.zip")' | grep -qx true; then
+            echo "Release $TAG already has the ZIP."
+            exit 0
+          fi
+          gh release create "$TAG" Digital-World-Clock-Widgets.zip \
+            --repo "$GITHUB_REPOSITORY" --target "$GITHUB_SHA" --generate-notes \
+            --title "Digital World-Clock Widgets $TAG"
