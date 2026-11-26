@@ -1,0 +1,8 @@
+.DS_Store
+._*
+.build/
+.swiftpm/
+__pycache__/
+*.pyc
+/macOS/build/
+/Shared/Resources/cities.json
