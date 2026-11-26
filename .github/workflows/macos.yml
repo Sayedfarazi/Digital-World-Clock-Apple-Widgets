@@ -1,0 +1,63 @@
+name: macOS build and release
+
+on:
+  push:
+    branches: [main]
+    tags: ['v*']
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    name: Build and verify ZIP
+    runs-on: macos-26
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
+        with:
+          persist-credentials: false
+
+      - name: Check release version
+        if: github.ref_type == 'tag'
+        run: |
+          source macOS/config/project.env
+          if [[ "$GITHUB_REF_NAME" != "v$MARKETING_VERSION" ]]; then
+            echo "::error::Expected tag v$MARKETING_VERSION for this build"
+            exit 1
+          fi
+
+      - name: Generate city catalog
+        run: python3 Shared/scripts/gen_cities.py
+
+      - name: Build, sign, and verify package
+        run: macOS/scripts/package.sh
+
+      - name: Pass verified ZIP to release job
+        if: github.ref_type == 'tag'
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        with:
+          name: macos-release
+          path: macOS/build/release/Digital-World-Clock-Widgets.zip
+          if-no-files-found: error
+          retention-days: 1
+
+  release:
+    name: Publish GitHub Release
+    if: github.ref_type == 'tag'
+    needs: build
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4
+        with:
+          name: macos-release
+
+      - name: Publish verified ZIP
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh release create "$GITHUB_REF_NAME" Digital-World-Clock-Widgets.zip \
+            --repo "$GITHUB_REPOSITORY" --verify-tag --generate-notes \
+            --title "Digital World-Clock Widgets $GITHUB_REF_NAME"
